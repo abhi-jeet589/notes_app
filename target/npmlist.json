@@ -1,0 +1,1 @@
+{"version":"1.0.0","name":"notes_app","dependencies":{"express":{"version":"4.18.2"},"help":{"version":"3.0.2"},"mongodb":{"version":"5.7.0"},"mongoose":{"version":"7.4.2"}}}
