@@ -7,9 +7,10 @@ let _db;
 const mongoConnect = (callback) => {
   MongoClient.connect(connection_string)
     .then((client) => {
-        // console.log(client)
+      console.log("Connection Successful");
+      // console.log(client)
       _db = client.db();
-    //   console.log(_db);
+      //   console.log(_db);
       callback();
     })
     .catch((err) => {
@@ -19,13 +20,12 @@ const mongoConnect = (callback) => {
 };
 
 const getDb = () => {
-    if(_db){
-        console.log("Connection Successful");
-        // console.log(_db);
-        return _db;
-    }
-    throw "No database found!"
-}
+  if (_db) {
+    // console.log(_db);
+    return _db;
+  }
+  throw "No database found!";
+};
 
 exports.getDb = getDb;
 exports.mongoConnect = mongoConnect;

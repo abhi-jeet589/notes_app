@@ -5,9 +5,9 @@ const app = express();
 const bodyParser = require("body-parser");
 const accountRouter = require("./routers/account_route.js");
 const authRouter = require("./routers/user.js");
+const notesRouter = require("./routers/notes_route.js");
 
-// const mongoConnect = require("./Utilities/db_connection.js").mongoConnect;
-const mongoose = require("mongoose");
+const mongoConnect = require("./Utilities/db_connection.js").mongoConnect;
 
 //Setting configuration constants
 const PORT = process.env.PORT || 8080;
@@ -16,15 +16,15 @@ const PORT = process.env.PORT || 8080;
 app.use(bodyParser.json());
 // app.use(express.json());
 
-// app.use((req, res, next) => {
-//     res.setHeader("Access-Control-Allow-Origin", "*");
-//     res.setHeader(
-//       "Access-Control-Allow-Methods",
-//       "GET, POST, PUT, PATCH, DELETE"
-//     );
-//     res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-//     next();
-//   });
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, PATCH, DELETE"
+  );
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  next();
+});
 
 //Using middleware for routes
 app.use((req, res, next) => {
@@ -32,19 +32,12 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use("/account", accountRouter);
 app.use("/auth", authRouter);
+app.use("/account", accountRouter);
+app.use("/notes", notesRouter);
 
-//Start server
-// mongoConnect((client) => {
-//     // console.log(client);
-//     app.listen(PORT, () => console.log(`Listening on port ${PORT}`));
-// })
-
-mongoose
-  .connect(process.env.DB_CONNECTION_URI)
-  .then((result) => {
-    console.log("Connection established");
-    app.listen(8080);
-  })
-  .catch((err) => console.log(err));
+// Start server
+mongoConnect((client) => {
+  // console.log(client);
+  app.listen(PORT, () => console.log(`Listening on port ${PORT}`));
+});
