@@ -4,7 +4,6 @@ const express = require("express");
 const app = express();
 const bodyParser = require("body-parser");
 const accountRouter = require("./routers/account_route.js");
-const authRouter = require("./routers/user.js");
 const notesRouter = require("./routers/notes_route.js");
 const morgan = require("morgan");
 const createError = require("http-errors");
@@ -33,7 +32,6 @@ app.use((req, res, next) => {
 app.use(morgan("dev"));
 
 //Using middleware for routes
-app.use("/auth", authRouter);
 app.use("/account", accountRouter);
 app.use("/notes", notesRouter);
 

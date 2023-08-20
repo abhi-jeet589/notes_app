@@ -1,27 +1,9 @@
-require("dotenv").config({ path: "../.env" });
 const express = require("express");
 const router = express.Router();
-const getDb = require("../Utilities/db_connection").getDb;
+const account_controller = require("../controllers/accounts_controller");
 
-router.get("/", (request, response, next) => {
-  const db = getDb();
-  let { page } = request.query;
-  let { limit } = request.query || 50;
-  let offset = (page - 1) * limit;
+router.post("/register", account_controller.register);
 
-  db.collection(process.env.DB_COLLECTION_NAME)
-    .find()
-    .skip(offset)
-    .limit(Number(limit))
-    .toArray()
-    .then((user) => {
-      response.status(200).json({
-        next: request.url + "?page" + String(page++),
-        records: user.length,
-        user: user,
-      });
-    })
-    .catch((err) => console.log(err));
-});
+router.post("/login", account_controller.login);
 
 module.exports = router;

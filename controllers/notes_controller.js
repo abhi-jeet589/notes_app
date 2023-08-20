@@ -1,6 +1,7 @@
 const Note = require("../models/note.js");
 const { Types } = require("mongoose");
 const createError = require("http-errors");
+const { noteSchema } = require("../Utilities/validation_schema.js");
 
 exports.getAllNotes = (req, res, next) => {
   Note.find()
@@ -23,29 +24,30 @@ exports.getNoteWithID = (req, res, next) => {
     .catch((err) => next(err));
 };
 
-exports.createNote = (req, res, next) => {
-  //Getting account id from the request header after authentication
-  const account_id = req.headers.account_id;
-
-  //Creating a new notes document to insert into collection
-  const { note_title } = req.body;
-  const note_content = req.body.note_content || "";
-  const tags = req.body.tags || [];
-  const note_document = new Note({
-    note_title,
-    tags,
-    note_content,
-    account_id,
-  });
-  note_document
-    .save()
-    .then((response) => {
-      res.status(201).send({
-        message: "Note created successfully",
-        response,
-      });
-    })
-    .catch((err) => next(err));
+exports.createNote = async (req, res, next) => {
+  try {
+    //Getting account id from the request header after authentication
+    const account_id = req.headers.account_id;
+    //Creating a new notes document to insert into collection
+    const { note_title } = req.body;
+    const note_content = req.body.note_content || "";
+    const tags = req.body.tags || [];
+    const note_object = {
+      note_title,
+      tags,
+      note_content,
+      account_id,
+    };
+    const validatedNoted = await noteSchema.validateAsync(note_object);
+    const note_document = new Note(validatedNoted);
+    const savedNote = await note_document.save();
+    res.status(201).send({
+      message: "Note created successfully",
+      savedNote,
+    });
+  } catch (err) {
+    next(err);
+  }
 };
 
 exports.deleteNote = (req, res, next) => {

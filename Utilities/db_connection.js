@@ -3,13 +3,10 @@ const mongoose = require("mongoose");
 const connection_string = process.env.DB_CONNECTION_URI || "";
 const db_name = process.env.DB_NAME || "";
 
-let _db;
-
 const mongoConnect = (callback) => {
   mongoose
     .connect(connection_string, { dbName: db_name })
     .then((client) => {
-      _db = client.connection.db;
       callback();
     })
     .catch((err) => console.error(err.message));
@@ -30,12 +27,4 @@ process.on("SIGINT", async () => {
   process.exit(0);
 });
 
-const getDb = () => {
-  if (_db) {
-    return _db;
-  }
-  throw "No database found!";
-};
-
-exports.getDb = getDb;
 exports.mongoConnect = mongoConnect;
