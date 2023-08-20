@@ -1,27 +1,37 @@
-const { MongoClient } = require("mongodb");
+const mongoose = require("mongoose");
 
 const connection_string = process.env.DB_CONNECTION_URI || "";
+const db_name = process.env.DB_NAME || "";
 
 let _db;
 
 const mongoConnect = (callback) => {
-  MongoClient.connect(connection_string)
+  mongoose
+    .connect(connection_string, { dbName: db_name })
     .then((client) => {
-      console.log("Connection Successful");
-      // console.log(client)
-      _db = client.db();
-      //   console.log(_db);
+      _db = client.connection.db;
       callback();
     })
-    .catch((err) => {
-      console.log(err);
-      throw err;
-    });
+    .catch((err) => console.error(err.message));
 };
+
+mongoose.connection.on("connected", () => {
+  console.log("Mongodb connection established");
+});
+
+mongoose.connection.on("error", (err) => console.error(err.message));
+
+mongoose.connection.on("disconnected", () =>
+  console.log("Mongodb connection disconnected")
+);
+
+process.on("SIGINT", async () => {
+  await mongoose.connection.close();
+  process.exit(0);
+});
 
 const getDb = () => {
   if (_db) {
-    // console.log(_db);
     return _db;
   }
   throw "No database found!";
@@ -29,20 +39,3 @@ const getDb = () => {
 
 exports.getDb = getDb;
 exports.mongoConnect = mongoConnect;
-
-// const client = new MongoClient(connection_string);
-
-// const connectToDB = async(db,collec) => {
-//     let collection,connection;
-//     try{
-//         connection = await client.connect();
-//         console.log('Connection established');
-//         collection = connection.db(db);
-//         // collection = connection.db(db).collection(collec);
-//     }catch(error){
-//         console.error(error.message);
-//     }
-//     return collection;
-// }
-
-// module.exports = connectToDB;
