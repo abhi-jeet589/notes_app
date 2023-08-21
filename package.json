@@ -4,7 +4,7 @@
   "description": "Write and save notes on the cloud",
   "main": "server.js",
   "scripts": {
-    "Start": "nodemon server.js"
+    "start": "nodemon server.js"
   },
   "author": "Abhijeet",
   "license": "ISC",
