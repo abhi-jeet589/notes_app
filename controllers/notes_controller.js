@@ -4,7 +4,9 @@ const createError = require("http-errors");
 const { noteSchema } = require("../Utilities/validation_schema.js");
 
 exports.getAllNotes = (req, res, next) => {
-  Note.find()
+  // console.log(req.payload);
+  const account_id = req.payload.UserId;
+  Note.find({ account_id })
     .then((notes) => {
       const notesCount = notes.length;
       return res.status(200).json({
@@ -17,7 +19,8 @@ exports.getAllNotes = (req, res, next) => {
 
 exports.getNoteWithID = (req, res, next) => {
   const note_id = new Types.ObjectId(req.params.id);
-  Note.findById(note_id)
+  const account_id = req.payload.UserId;
+  Note.find({ account_id, _id: note_id })
     .then((note) => {
       return res.status(200).json({ note });
     })
@@ -27,7 +30,7 @@ exports.getNoteWithID = (req, res, next) => {
 exports.createNote = async (req, res, next) => {
   try {
     //Getting account id from the request header after authentication
-    const account_id = req.headers.account_id;
+    const account_id = req.payload.UserId;
     //Creating a new notes document to insert into collection
     const { note_title } = req.body;
     const note_content = req.body.note_content || "";

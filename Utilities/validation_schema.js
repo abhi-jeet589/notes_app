@@ -1,12 +1,20 @@
 const Joi = require("joi");
 
-const authSchema = Joi.object({
+const registrationSchema = Joi.object({
   email: Joi.string().email().required().lowercase(),
   password: Joi.string()
     .min(8)
     .pattern(new RegExp("^[a-zA-Z0-9]{3,30}$"))
     .required(),
   username: Joi.string().alphanum().required().min(3).max(30),
+});
+
+const authSchema = Joi.object({
+  email: Joi.string().email().required().lowercase(),
+  password: Joi.string()
+    .min(8)
+    .pattern(new RegExp("^[a-zA-Z0-9]{3,30}$"))
+    .required(),
 });
 
 const noteSchema = Joi.object({
@@ -16,4 +24,4 @@ const noteSchema = Joi.object({
   tags: Joi.array(),
 });
 
-module.exports = { authSchema, noteSchema };
+module.exports = { registrationSchema, noteSchema, authSchema };
