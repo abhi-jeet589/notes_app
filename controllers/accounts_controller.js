@@ -5,8 +5,11 @@ const {
   registrationSchema,
   authSchema,
 } = require("../Utilities/validation_schema");
-const { generateAccessToken } = require("../Utilities/webToken_generator");
-const { response } = require("express");
+const {
+  generateAccessToken,
+  generateRefreshToken,
+  verifyRefreshToken,
+} = require("../Utilities/webToken_generator");
 
 exports.register = async (req, res, next) => {
   try {
@@ -15,10 +18,14 @@ exports.register = async (req, res, next) => {
     if (accountExists) {
       throw createError.Conflict(`${validatedBody.email} already exists`);
     }
+
     const newAccount = new Account(validatedBody);
     const savedAccount = await newAccount.save();
-    const token = await generateAccessToken(savedAccount.id);
-    res.status(201).send({ BearerToken: token });
+
+    const Accesstoken = await generateAccessToken(savedAccount.id);
+    const RefreshToken = await generateRefreshToken(savedAccount.id);
+
+    res.status(201).send({ Accesstoken, RefreshToken });
   } catch (err) {
     if (err.isJoi === true) {
       err.status = 422;
@@ -36,12 +43,37 @@ exports.login = async (req, res, next) => {
     const isValidPassword = await user.isValidPassword(validatedBody.password);
     if (!isValidPassword)
       throw createError.Unauthorized("Username or password is invalid");
-    const token = await generateAccessToken(user.id);
-    res.status(200).send({ BearerToken: token });
+
+    const Accesstoken = await generateAccessToken(user.id);
+    const RefreshToken = await generateRefreshToken(user.id);
+
+    res.status(200).send({ Accesstoken, RefreshToken });
   } catch (error) {
     if (error.isJoi === true) {
       next(createError.BadRequest("Invalid username or password"));
     }
+    next(error);
+  }
+};
+
+exports.refreshToken = async (req, res, next) => {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) throw createError.BadRequest();
+    const userId = await verifyRefreshToken(refreshToken);
+
+    const accessToken = await generateAccessToken(userId);
+    const refToken = await generateRefreshToken(userId);
+
+    res.status(200).send({ accessToken, refreshToken: refToken });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.logout = async (req, res, next) => {
+  try {
+  } catch (error) {
     next(error);
   }
 };

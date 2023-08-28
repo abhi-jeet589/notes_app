@@ -32,3 +32,30 @@ exports.verifyAccessToken = (req, res, next) => {
     next();
   });
 };
+
+exports.generateRefreshToken = (UserId) => {
+  return new Promise((resolve, reject) => {
+    const payload = { UserId };
+    const secret = process.env.REFRESH_TOKEN_SECRET;
+    const options = {
+      expiresIn: "1y",
+      issuer: "notes_app",
+    };
+    new JWT.sign(payload, secret, options, (err, token) => {
+      if (err) {
+        return reject(createError.InternalServerError("Failed to sign token"));
+      }
+      resolve(token);
+    });
+  });
+};
+
+exports.verifyRefreshToken = (token) => {
+  return new Promise((resolve, reject) => {
+    JWT.verify(token, process.env.REFRESH_TOKEN_SECRET, (err, payload) => {
+      if (err) reject(createError.Unauthorized());
+      const userId = payload.aud;
+      resolve(userId);
+    });
+  });
+};
