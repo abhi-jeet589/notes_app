@@ -10,6 +10,7 @@ const createError = require("http-errors");
 const { verifyAccessToken } = require("./Utilities/webToken_generator.js");
 
 const mongoConnect = require("./Utilities/db_connection.js").mongoConnect;
+require("../Notes_app/Utilities/redis_connection.js").connectRedis();
 
 //Setting configuration constants
 const PORT = process.env.PORT || 8080;

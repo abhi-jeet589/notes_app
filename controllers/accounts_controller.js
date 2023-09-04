@@ -10,6 +10,7 @@ const {
   generateRefreshToken,
   verifyRefreshToken,
 } = require("../Utilities/webToken_generator");
+const { redisClient } = require("../Utilities/redis_connection");
 
 exports.register = async (req, res, next) => {
   try {
@@ -58,10 +59,20 @@ exports.login = async (req, res, next) => {
 
 exports.refreshToken = async (req, res, next) => {
   try {
+    //Get the refresh token from the body and verify the token with JWT.
     const { refreshToken } = req.body;
     if (!refreshToken) throw createError.BadRequest();
     const userId = await verifyRefreshToken(refreshToken);
 
+    //After verification with JWT, verify if the user's refresh token exists in Redis DB.
+    const client = redisClient();
+    const redisToken = await client.get(userId);
+
+    if (!(redisToken === refreshToken)) {
+      throw createError.Unauthorized();
+    }
+
+    //Post verification generate new access and refresh token.
     const accessToken = await generateAccessToken(userId);
     const refToken = await generateRefreshToken(userId);
 
@@ -73,6 +84,22 @@ exports.refreshToken = async (req, res, next) => {
 
 exports.logout = async (req, res, next) => {
   try {
+    //Get the refresh token from the body and verify the token with JWT library.
+    const { refreshToken } = req.body;
+    if (!refreshToken) throw createError.BadRequest();
+    const userId = await verifyRefreshToken(refreshToken);
+
+    //Check if the token exists in the Redis DB. If it does the remove the key value pair. If it doesnt then the request is unauthorized.
+    const client = redisClient();
+    const redisToken = await client.get(userId);
+    if (redisToken) {
+      await client.del(userId);
+    } else {
+      throw createError.UnprocessableEntity();
+    }
+
+    //Reply with status everything went right.
+    res.status(204).send();
   } catch (error) {
     next(error);
   }

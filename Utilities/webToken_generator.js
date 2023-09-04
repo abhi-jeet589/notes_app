@@ -1,5 +1,6 @@
 const JWT = require("jsonwebtoken");
 const createError = require("http-errors");
+const { redisClient } = require("../Utilities/redis_connection");
 
 exports.generateAccessToken = (UserId) => {
   return new Promise((resolve, reject) => {
@@ -45,7 +46,10 @@ exports.generateRefreshToken = (UserId) => {
       if (err) {
         return reject(createError.InternalServerError("Failed to sign token"));
       }
-      resolve(token);
+      redisClient()
+        .setEx(UserId, 365 * 24 * 60 * 60, token)
+        .then(resolve(token))
+        .catch(reject(createError.InternalServerError(err.message)));
     });
   });
 };
@@ -54,7 +58,7 @@ exports.verifyRefreshToken = (token) => {
   return new Promise((resolve, reject) => {
     JWT.verify(token, process.env.REFRESH_TOKEN_SECRET, (err, payload) => {
       if (err) reject(createError.Unauthorized());
-      const userId = payload.aud;
+      const userId = payload.UserId;
       resolve(userId);
     });
   });
