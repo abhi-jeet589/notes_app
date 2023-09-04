@@ -1,0 +1,30 @@
+### Fetch all notes
+GET http://localhost:3000/notes
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJVc2VySWQiOiI2NGY1N2I2OTY2MDc5YmYwOTE0MGY3YjQiLCJpYXQiOjE2OTM4MTAzOTAsImV4cCI6MTY5MzgxMzk5MCwiaXNzIjoibm90ZXNfYXBwIn0.XmNQtMt3szA-ldgnLgUE0QeUKxh9yLOQntwGBMJppfw
+
+### Register a new user
+POST http://localhost:3000/account/register
+Content-Type: application/json
+
+{
+    "email" : "harveyS@example.com",
+    "password": "123456789",
+    "username": "harvey"
+}
+
+### Login user
+POST http://localhost:3000/account/login
+Content-Type: application/json
+
+{
+    "email" : "abhijeet12345@example.com",
+    "password": "123456789"
+}
+
+### Generating access tokens using refresh token
+POST http://localhost:3000/account/refreshToken
+Content-Type: application/json
+
+{
+    "refreshToken" : "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJVc2VySWQiOiI2NGVjMmE0MDg2M2RlYjZkOTE3MDQ3ODYiLCJpYXQiOjE2OTMxOTk0MjEsImV4cCI6MTcyNDc1NzAyMSwiaXNzIjoibm90ZXNfYXBwIn0.5c-Eg_vcKFzPa71iyB79dUWZxyeachQCqqJ103v9IC8"
+}
