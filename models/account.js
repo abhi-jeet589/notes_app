@@ -19,7 +19,7 @@ const accountSchema = new Schema(
       required: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true, strict: false }
 );
 
 accountSchema.pre("save", async function (next) {

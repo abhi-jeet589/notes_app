@@ -6,11 +6,11 @@ const {
   authSchema,
 } = require("../Utilities/validation_schema");
 const {
-  generateAccessToken,
-  generateRefreshToken,
+  generateToken,
   verifyRefreshToken,
 } = require("../Utilities/webToken_generator");
 const { redisClient } = require("../Utilities/redis_connection");
+const { encrypt_token, decrypt_token } = require("../Utilities/token_hasher");
 
 exports.register = async (req, res, next) => {
   try {
@@ -23,10 +23,22 @@ exports.register = async (req, res, next) => {
     const newAccount = new Account(validatedBody);
     const savedAccount = await newAccount.save();
 
-    const Accesstoken = await generateAccessToken(savedAccount.id);
-    const RefreshToken = await generateRefreshToken(savedAccount.id);
-
-    res.status(201).send({ Accesstoken, RefreshToken });
+    const Accesstoken = await generateToken(
+      savedAccount.id,
+      "1h",
+      process.env.ACCESS_TOKEN_SECRET
+    );
+    const RefreshToken = await generateToken(
+      savedAccount.id,
+      "1y",
+      process.env.REFRESH_TOKEN_SECRET
+    );
+    redisClient()
+      .setEx(savedAccount.id, 365 * 24 * 60 * 60, RefreshToken)
+      .then(res.status(201).send({ Accesstoken, RefreshToken }))
+      .catch((err) => {
+        throw createError.InternalServerError(err.message);
+      });
   } catch (err) {
     if (err.isJoi === true) {
       err.status = 422;
@@ -45,10 +57,22 @@ exports.login = async (req, res, next) => {
     if (!isValidPassword)
       throw createError.Unauthorized("Username or password is invalid");
 
-    const Accesstoken = await generateAccessToken(user.id);
-    const RefreshToken = await generateRefreshToken(user.id);
-
-    res.status(200).send({ Accesstoken, RefreshToken });
+    const Accesstoken = await generateToken(
+      user.id,
+      "1h",
+      process.env.ACCESS_TOKEN_SECRET
+    );
+    const RefreshToken = await generateToken(
+      user.id,
+      "1y",
+      process.env.REFRESH_TOKEN_SECRET
+    );
+    redisClient()
+      .setEx(user.id, 365 * 24 * 60 * 60, RefreshToken)
+      .then(res.status(200).send({ Accesstoken, RefreshToken }))
+      .catch((err) => {
+        throw createError.InternalServerError(err.message);
+      });
   } catch (error) {
     if (error.isJoi === true) {
       next(createError.BadRequest("Invalid username or password"));
@@ -73,10 +97,22 @@ exports.refreshToken = async (req, res, next) => {
     }
 
     //Post verification generate new access and refresh token.
-    const accessToken = await generateAccessToken(userId);
-    const refToken = await generateRefreshToken(userId);
-
-    res.status(200).send({ accessToken, refreshToken: refToken });
+    const accessToken = await generateToken(
+      userId,
+      "1h",
+      process.env.ACCESS_TOKEN_SECRET
+    );
+    const refToken = await generateToken(
+      userId,
+      "1y",
+      process.env.REFRESH_TOKEN_SECRET
+    );
+    redisClient()
+      .setEx(userId, 365 * 24 * 60 * 60, refToken)
+      .then(res.status(200).send({ accessToken, refreshToken: refToken }))
+      .catch((err) => {
+        throw createError.InternalServerError(err.message);
+      });
   } catch (error) {
     next(error);
   }
@@ -100,6 +136,51 @@ exports.logout = async (req, res, next) => {
 
     //Reply with status everything went right.
     res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.forgotPassword = async (req, res, next) => {
+  try {
+    //User provides us (in request body) with the email to reset the password for.
+    if (!req.body.email && !req.body.Email) throw createError.BadRequest();
+    const userEmail = req.body.email || req.body.Email;
+
+    //We validate if the email is true and if the email exists in our database.
+    const emailFormat = /[^\.]+[\w\.]+@[a-zA-Z]+\.+[a-zA-Z]{3}$/;
+    if (!userEmail.match(emailFormat))
+      throw createError.BadRequest("Invalid email address");
+    const dbUser = await Account.findOne({ email: userEmail });
+    if (!dbUser) throw createError.NotFound("Invalid User");
+
+    //If the email exists then we will fetch the userID from the email and create a token that will last for 15 mins for the user to change the password
+    const encrypted_userid = encrypt_token(dbUser.id);
+    const passwordResetToken = await generateToken(
+      encrypted_userid,
+      "15m",
+      process.env.PRIVATE_KEY
+    );
+
+    await dbUser.updateOne({
+      $set: {
+        "Reset Password": { Token: passwordResetToken, isUsed: false },
+      },
+    });
+
+    //Create and send the link to user email.
+    const passwordResetLink =
+      req.hostname +
+      req.baseUrl +
+      `/resetPassword?uid=${encrypted_userid}&token=${passwordResetToken}`;
+    res.send({ message: "Password reset link sent.", passwordResetLink });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.resetPassword = async (req, res, next) => {
+  try {
   } catch (error) {
     next(error);
   }

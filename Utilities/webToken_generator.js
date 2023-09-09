@@ -2,15 +2,14 @@ const JWT = require("jsonwebtoken");
 const createError = require("http-errors");
 const { redisClient } = require("../Utilities/redis_connection");
 
-exports.generateAccessToken = (UserId) => {
+exports.generateToken = (UserId, Expiry, Secret) => {
   return new Promise((resolve, reject) => {
     const payload = { UserId };
-    const secret = process.env.ACCESS_TOKEN_SECRET;
     const options = {
-      expiresIn: "1h",
+      expiresIn: Expiry,
       issuer: "notes_app",
     };
-    new JWT.sign(payload, secret, options, (err, token) => {
+    new JWT.sign(payload, Secret, options, (err, token) => {
       if (err) {
         return reject(createError.InternalServerError("Failed to sign token"));
       }
@@ -34,25 +33,25 @@ exports.verifyAccessToken = (req, res, next) => {
   });
 };
 
-exports.generateRefreshToken = (UserId) => {
-  return new Promise((resolve, reject) => {
-    const payload = { UserId };
-    const secret = process.env.REFRESH_TOKEN_SECRET;
-    const options = {
-      expiresIn: "1y",
-      issuer: "notes_app",
-    };
-    new JWT.sign(payload, secret, options, (err, token) => {
-      if (err) {
-        return reject(createError.InternalServerError("Failed to sign token"));
-      }
-      redisClient()
-        .setEx(UserId, 365 * 24 * 60 * 60, token)
-        .then(resolve(token))
-        .catch(reject(createError.InternalServerError(err.message)));
-    });
-  });
-};
+// exports.generateRefreshToken = (UserId) => {
+//   return new Promise((resolve, reject) => {
+//     const payload = { UserId };
+//     const secret = process.env.REFRESH_TOKEN_SECRET;
+//     const options = {
+//       expiresIn: "1y",
+//       issuer: "notes_app",
+//     };
+//     new JWT.sign(payload, secret, options, (err, token) => {
+//       if (err) {
+//         return reject(createError.InternalServerError("Failed to sign token"));
+//       }
+//       redisClient()
+//         .setEx(UserId, 365 * 24 * 60 * 60, token)
+//         .then(resolve(token))
+//         .catch(reject(createError.InternalServerError(err.message)));
+//     });
+//   });
+// };
 
 exports.verifyRefreshToken = (token) => {
   return new Promise((resolve, reject) => {
