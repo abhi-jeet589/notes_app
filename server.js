@@ -7,7 +7,9 @@ const accountRouter = require("./routers/account_route.js");
 const notesRouter = require("./routers/notes_route.js");
 const morgan = require("morgan");
 const createError = require("http-errors");
-const { verifyAccessToken } = require("./Utilities/webToken_generator.js");
+const {
+  verifyAuthorizationToken,
+} = require("./Utilities/webToken_generator.js");
 
 const mongoConnect = require("./Utilities/db_connection.js").mongoConnect;
 require("../Notes_app/Utilities/redis_connection.js").connectRedis();
@@ -35,7 +37,7 @@ app.use(morgan("dev"));
 
 //Using middleware for routes
 app.use("/account", accountRouter);
-app.use("/notes", verifyAccessToken, notesRouter);
+app.use("/notes", verifyAuthorizationToken, notesRouter);
 
 //To handle all the invalid URL requests
 app.use(async (req, res, next) => {

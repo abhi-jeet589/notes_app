@@ -18,8 +18,11 @@ const accountSchema = new Schema(
       type: String,
       required: true,
     },
+    ResetPassword: {
+      type: Object,
+    },
   },
-  { timestamps: true, strict: false }
+  { timestamps: true }
 );
 
 accountSchema.pre("save", async function (next) {

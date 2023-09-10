@@ -18,7 +18,7 @@ exports.generateToken = (UserId, Expiry, Secret) => {
   });
 };
 
-exports.verifyAccessToken = (req, res, next) => {
+exports.verifyAuthorizationToken = (req, res, next) => {
   if (!req.headers["authorization"]) return next(createError.Unauthorized());
   const bearerToken = req.headers["authorization"];
   const token = bearerToken.split(" ")[1];
@@ -53,10 +53,10 @@ exports.verifyAccessToken = (req, res, next) => {
 //   });
 // };
 
-exports.verifyRefreshToken = (token) => {
+exports.verifyToken = (token, secret, errMsg = "Unauthorized") => {
   return new Promise((resolve, reject) => {
-    JWT.verify(token, process.env.REFRESH_TOKEN_SECRET, (err, payload) => {
-      if (err) reject(createError.Unauthorized());
+    JWT.verify(token, secret, (err, payload) => {
+      if (err) reject(createError.Unauthorized(errMsg));
       const userId = payload.UserId;
       resolve(userId);
     });

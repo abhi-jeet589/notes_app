@@ -7,7 +7,7 @@ const {
 } = require("../Utilities/validation_schema");
 const {
   generateToken,
-  verifyRefreshToken,
+  verifyToken,
 } = require("../Utilities/webToken_generator");
 const { redisClient } = require("../Utilities/redis_connection");
 const { encrypt_token, decrypt_token } = require("../Utilities/token_hasher");
@@ -86,7 +86,10 @@ exports.refreshToken = async (req, res, next) => {
     //Get the refresh token from the body and verify the token with JWT.
     const { refreshToken } = req.body;
     if (!refreshToken) throw createError.BadRequest();
-    const userId = await verifyRefreshToken(refreshToken);
+    const userId = await verifyToken(
+      refreshToken,
+      process.env.REFRESH_TOKEN_SECRET
+    );
 
     //After verification with JWT, verify if the user's refresh token exists in Redis DB.
     const client = redisClient();
@@ -123,7 +126,10 @@ exports.logout = async (req, res, next) => {
     //Get the refresh token from the body and verify the token with JWT library.
     const { refreshToken } = req.body;
     if (!refreshToken) throw createError.BadRequest();
-    const userId = await verifyRefreshToken(refreshToken);
+    const userId = await verifyToken(
+      refreshToken,
+      process.env.REFRESH_TOKEN_SECRET
+    );
 
     //Check if the token exists in the Redis DB. If it does the remove the key value pair. If it doesnt then the request is unauthorized.
     const client = redisClient();
@@ -164,12 +170,13 @@ exports.forgotPassword = async (req, res, next) => {
 
     await dbUser.updateOne({
       $set: {
-        "Reset Password": { Token: passwordResetToken, isUsed: false },
+        ResetPassword: { Token: passwordResetToken, isUsed: false },
       },
     });
 
     //Create and send the link to user email.
     const passwordResetLink =
+      "http://" +
       req.hostname +
       req.baseUrl +
       `/resetPassword?uid=${encrypted_userid}&token=${passwordResetToken}`;
@@ -181,6 +188,39 @@ exports.forgotPassword = async (req, res, next) => {
 
 exports.resetPassword = async (req, res, next) => {
   try {
+    if (!req.query.uid || !req.query.token || !req.body.newPassword)
+      throw createError.BadRequest();
+
+    //Get the userID and the password reset token from the incoming request query.
+    const hashedUid = req.query.uid;
+    const token = req.query.token;
+
+    //Decrypt the incoming userid.
+    const userId = decrypt_token(hashedUid);
+
+    // Check if the token has expired or not. Search for the token in the user id itself. Check if the token has been used already.
+    const tokenHashedUid = await verifyToken(
+      token,
+      process.env.PRIVATE_KEY,
+      (errMsg = "Password reset link expired")
+    );
+    if (!(tokenHashedUid === hashedUid)) throw createError.Forbidden();
+
+    const userFromDB = await Account.findById(userId);
+    if (!userFromDB) throw createError.Forbidden();
+
+    if (userFromDB.ResetPassword.isUsed === true)
+      throw createError.Unauthorized("Password reset link already used");
+
+    //Reset the user's password. Change the isUsed value in the DB to true
+    userFromDB.password = req.body.newPassword;
+    await userFromDB.save();
+    await userFromDB.updateOne({
+      $set: {
+        ResetPassword: { isUsed: true },
+      },
+    });
+    res.status(200).send({ message: "Password Reset successful." });
   } catch (error) {
     next(error);
   }
