@@ -4,47 +4,56 @@ const express = require("express");
 const app = express();
 const bodyParser = require("body-parser");
 const accountRouter = require("./routers/account_route.js");
-const authRouter = require("./routers/user.js");
+const notesRouter = require("./routers/notes_route.js");
+const morgan = require("morgan");
+const createError = require("http-errors");
+const {
+  verifyAuthorizationToken,
+} = require("./Utilities/webToken_generator.js");
 
-// const mongoConnect = require("./Utilities/db_connection.js").mongoConnect;
-const mongoose = require("mongoose");
+const mongoConnect = require("./Utilities/db_connection.js").mongoConnect;
+require("../Notes_app/Utilities/redis_connection.js").connectRedis();
 
 //Setting configuration constants
 const PORT = process.env.PORT || 8080;
 
 //Configuring server
 app.use(bodyParser.json());
-// app.use(express.json());
+app.use(express.json());
 
-// app.use((req, res, next) => {
-//     res.setHeader("Access-Control-Allow-Origin", "*");
-//     res.setHeader(
-//       "Access-Control-Allow-Methods",
-//       "GET, POST, PUT, PATCH, DELETE"
-//     );
-//     res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-//     next();
-//   });
-
-//Using middleware for routes
+//Handling CORS
 app.use((req, res, next) => {
-  console.log(req.protocol + " " + req.method + " " + req.url);
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, PATCH, DELETE"
+  );
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
   next();
 });
 
+//Logging request to console
+app.use(morgan("dev"));
+
+//Using middleware for routes
 app.use("/account", accountRouter);
-app.use("/auth", authRouter);
+app.use("/notes", verifyAuthorizationToken, notesRouter);
 
-//Start server
-// mongoConnect((client) => {
-//     // console.log(client);
-//     app.listen(PORT, () => console.log(`Listening on port ${PORT}`));
-// })
+//To handle all the invalid URL requests
+app.use(async (req, res, next) => {
+  next(createError.NotFound());
+});
 
-mongoose
-  .connect(process.env.DB_CONNECTION_URI)
-  .then((result) => {
-    console.log("Connection established");
-    app.listen(8080);
-  })
-  .catch((err) => console.log(err));
+app.use(async (err, req, res, next) => {
+  res.status(err.status || 500).send({
+    error: {
+      status: err.status || 500,
+      message: err.message,
+    },
+  });
+});
+
+// Start server
+mongoConnect((client) => {
+  app.listen(PORT, () => console.log(`Listening on port ${PORT}`));
+});

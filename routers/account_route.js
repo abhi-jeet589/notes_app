@@ -1,34 +1,17 @@
-require("dotenv").config({ path: "../.env" });
 const express = require("express");
 const router = express.Router();
-const getDb = require("../Utilities/db_connection").getDb;
+const account_controller = require("../controllers/accounts_controller");
 
-// let _db = getDb();
+router.post("/register", account_controller.register);
 
-// router.get("/", (request, response, next) => {
-//     const db = getDb();
-//     db.collection(process.env.DB_COLLECTION_NAME)
-//       .find()
-//       .toArray()
-//       .then((user) => response.status(200).json({user: user}))
-//       .catch((err) => console.log(err));
-//     // console.log(db)
-//     // let collection = await connectToDb(process.env.DB_NAME,process.env.DB_COLLECTION_NAME);
-//     // let collection = _db.collection(process.env.DB_COLLECTION_NAME);
-//     // results =  await collection.find({}).limit(50).toArray();
-// });
+router.post("/login", account_controller.login);
 
-router.get("/", (request, response, next) => {
-      const db = getDb();
-      db.collection(process.env.DB_COLLECTION_NAME)
-        .find()
-        .toArray()
-        .then((user) => response.status(200).json({user: user}))
-        .catch((err) => console.log(err));
-      // console.log(db)
-      // let collection = await connectToDb(process.env.DB_NAME,process.env.DB_COLLECTION_NAME);
-      // let collection = _db.collection(process.env.DB_COLLECTION_NAME);
-      // results =  await collection.find({}).limit(50).toArray();
-  });
+router.post("/refreshToken", account_controller.refreshToken);
+
+router.delete("/logout", account_controller.logout);
+
+router.post("/forgot-password", account_controller.forgotPassword);
+
+router.post("/reset-password", account_controller.resetPassword);
 
 module.exports = router;
